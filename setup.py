@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url='https://github.com/tomchen/example_pypi_package',
     project_urls={
-        'Documentation': 'https://github.com/tomchen/example_pypi_package',
+        'Documentation': 'NA',
         'Bug Reports':
         'https://github.com/tomchen/example_pypi_package/issues',
         'Source Code': 'https://github.com/tomchen/example_pypi_package',
