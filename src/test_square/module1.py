@@ -6,4 +6,7 @@ class test_num(object):
         self.value = n
 
     def square(self):
-        return n*n
+        a = self.value
+        return a * a
+        
+
