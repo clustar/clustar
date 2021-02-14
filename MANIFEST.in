@@ -1,4 +1,5 @@
-include pyproject.toml
-include *.md
-include LICENSE
+include test_1.fits
+include test_2.fits
+include test_3.fits
+include test_4.fits
 recursive-include tests test*.py
