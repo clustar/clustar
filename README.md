@@ -1,2 +1,3 @@
 # Clustar
-BLAH BLAH
+
+A package for analyzing astronomical clusters.
