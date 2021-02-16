@@ -1,5 +1,2 @@
-include test_1.fits
-include test_2.fits
-include test_3.fits
-include test_4.fits
+include example.csv
 recursive-include tests test*.py
