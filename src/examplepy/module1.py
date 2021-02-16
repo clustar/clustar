@@ -25,8 +25,11 @@ class test_num(object):
     def load_example():
         stream = pkg_resources.resource_stream(__name__, 'data/example.csv')
         return pd.read_csv(stream)
+
+    def first_function(np_array):
+        file_fits = np_array
+        plt.imshow(file_fits,cmap='gray')
+        print("Image shape:",file_fits.shape)
     a = load_example()
-    print(a)
-    
-        
+    first_function(a)
 
