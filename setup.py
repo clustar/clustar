@@ -40,6 +40,8 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     # install_requires=['Pillow'],
+    include_package_data = True,
+    package_data={'': ['data/*.csv']},
     extras_require={
         'dev': ['check-manifest'],
         # 'test': ['coverage'],

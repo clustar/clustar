@@ -2,7 +2,7 @@ Metadata-Version: 2.1
 Name: example-pypi-package
 Version: 0.1.0
 Summary: Example PyPI (Python Package Index) Package
-Home-page: https://github.com/tomchen/example_pypi_package
+Home-page: /https://github.com/clustar/clustar
 Author: NRAO_capstone
 Author-email: jz5jx@virginia.edu
 License: UNKNOWN
@@ -10,7 +10,8 @@ Project-URL: Documentation, NA
 Project-URL: Bug Reports, https://github.com/tomchen/example_pypi_package/issues
 Project-URL: Source Code, https://github.com/tomchen/example_pypi_package
 Description: # Clustar
-        BLAH BLAH
+        
+        A package for analyzing astronomical clusters.
         
 Keywords: example,pypi,package
 Platform: UNKNOWN

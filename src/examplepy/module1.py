@@ -13,6 +13,7 @@ from astroML.stats import fit_bivariate_normal
 from astroML.stats.random import bivariate_normal
 import numpy as np
 import pandas as pd
+import pkg_resources
 class test_num(object):
 
     def __init__(self, n):
@@ -21,5 +22,8 @@ class test_num(object):
     def square(self):
         a = self.value
         return a * a
+    def load_example():
+        stream = pkg_resources.resource_stream(__name__, 'data/example.csv')
+        return pd.read_csv(stream)
         
 
