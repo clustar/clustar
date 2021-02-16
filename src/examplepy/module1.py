@@ -25,5 +25,8 @@ class test_num(object):
     def load_example():
         stream = pkg_resources.resource_stream(__name__, 'data/example.csv')
         return pd.read_csv(stream)
+    a = load_example()
+    print(a)
+    
         
 
