@@ -4,19 +4,19 @@ with open('README.md', 'r', encoding='utf-8') as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name='example_pypi_package',
+    name='clustar',
     author='NRAO_capstone',
     author_email='jz5jx@virginia.edu',
-    description='Example PyPI (Python Package Index) Package',
-    keywords='example, pypi, package',
+    description='Package for analyzing and clustering astronomical objects',
+    keywords='cluster, astronomy, protostars',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='/https://github.com/clustar/clustar',
     project_urls={
         'Documentation': 'NA',
         'Bug Reports':
-        'https://github.com/tomchen/example_pypi_package/issues',
-        'Source Code': 'https://github.com/tomchen/example_pypi_package',
+        'https://github.com/clustar/clustar/issues',
+        'Source Code': 'https://github.com/clustar/clustar',
         # 'Funding': '',
         # 'Say Thanks!': '',
     },
@@ -24,10 +24,10 @@ setuptools.setup(
     packages=setuptools.find_packages(where='src'),
     classifiers=[
         # see https://pypi.org/classifiers/
-        'Development Status :: 5 - Production/Stable',
+        'Development Status :: 2 - Pre-Alpha',
 
-        'Intended Audience :: Developers',
-        'Topic :: Software Development :: Build Tools',
+        'Intended Audience :: Science/Research',
+        'Topic :: Scientific/Engineering :: Astronomy',
 
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
