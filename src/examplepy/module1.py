@@ -20,13 +20,27 @@ class parameter_fitting(object):
         stream =  pd.read_csv(stream)
         return stream.to_numpy()
 
-    def bivariate_gaussian_fit(np_array):
-        print(np_array)
-    
+    def bivariate_gaussian_fit(array):
+        x = range(array.shape[1])
+        y = range(array.shape[0])
+        x, y = np.meshgrid(x, y)
+        pos = np.dstack((x, y))
+        image_data = np.nan_to_num(array, nan=0)
+        x_bar = np.average(x,weights = image_data)
+        y_bar = np.average(y, weights=image_data)
+        x_var = np.average((x - x_bar) ** 2, weights=image_data)
+        y_var = np.average((y - y_bar) ** 2, weights=image_data)
+        cov = np.average(x * y, weights=image_data) - x_bar * y_bar
+        cov_mat = np.array([[x_var, cov], [cov, y_var]])
+        rv = stats.multivariate_normal([x_bar, y_bar], cov_mat)
+        bvg = rv.pdf(pos)
+        return [x_bar, y_bar, x_var, y_var, cov_mat, rv, bvg] #Returns the parameters in a list
+        
     # Testing Portion:
     example_array = load_example()
     
     #Fitting:
-    bivariate_gaussian_fit(example_array)
+    parameters = bivariate_gaussian_fit(example_array)
+    print(parameters[0]) #Prints xbar 
     
 
