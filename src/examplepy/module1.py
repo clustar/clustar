@@ -14,22 +14,19 @@ from astroML.stats.random import bivariate_normal
 import numpy as np
 import pandas as pd
 import pkg_resources
-class test_num(object):
-
-    def __init__(self, n):
-        self.value = n
-
-    def square(self):
-        a = self.value
-        return a * a
+class parameter_fitting(object):
     def load_example():
         stream = pkg_resources.resource_stream(__name__, 'data/example.csv')
-        return pd.read_csv(stream)
+        stream =  pd.read_csv(stream)
+        return stream.to_numpy()
 
-    def first_function(np_array):
-        file_fits = np_array
-        plt.imshow(file_fits,cmap='gray')
-        print("Image shape:",file_fits.shape)
-    a = load_example()
-    first_function(a)
+    def bivariate_gaussian_fit(np_array):
+        print(np_array)
+    
+    # Testing Portion:
+    example_array = load_example()
+    
+    #Fitting:
+    bivariate_gaussian_fit(example_array)
+    
 
