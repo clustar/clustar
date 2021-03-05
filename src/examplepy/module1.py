@@ -52,3 +52,4 @@ class parameter_fitting(object):
 
     clust = clustarray.ClustArray(image)
     clust.denoise(pb_array = pb)
+    print('Noise level: ' + str(clust.noise_est))
