@@ -1,9 +1,11 @@
 # Example PyPI (Python Package Index) Package
 import unittest
+from astropy.io import fits
 import astropy.io
 import numpy as np
 import matplotlib
 from astropy.table import Table
+import astropy.io
 from scipy import stats
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
@@ -12,9 +14,12 @@ from astroML.stats.random import bivariate_normal
 import numpy as np
 import pandas as pd
 import pkg_resources
+
+import examplepy.clustarray
+
 class parameter_fitting(object):
-    def load_example():
-        stream = pkg_resources.resource_stream(__name__, 'data/example.csv')
+    def load_example(file_name):
+        stream = pkg_resources.resource_stream(__name__, file_name)
         stream =  pd.read_csv(stream)
         return stream.to_numpy()
 
@@ -33,12 +38,19 @@ class parameter_fitting(object):
         rv = stats.multivariate_normal([x_bar, y_bar], cov_mat)
         bvg = rv.pdf(pos)
         return [x_bar, y_bar, x_var, y_var, cov_mat, rv, bvg] #Returns the parameters in a list
-        
+
     # Testing Portion:
-    example_array = load_example()
-    
+    example_array = load_example('data/example.csv')
+
     #Fitting:
     parameters = bivariate_gaussian_fit(example_array)
     dataframe = pd.DataFrame(parameters,index=['xbar','ybar', 'xvar', 'yvar' , 'cov_mat','rv','bvg'])
     print(dataframe)
 
+    #testing denoising
+    image = load_example('data/test_fits.csv')
+    pb = load_example('data/test_pb.csv')
+
+    clust = examplepy.clustarray.ClustArray(image)
+    clust.denoise(pb_array = pb)
+    print('Noise level: ' + str(clust.noise_est))

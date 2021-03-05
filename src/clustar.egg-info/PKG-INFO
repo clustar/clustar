@@ -1,0 +1,31 @@
+Metadata-Version: 2.1
+Name: clustar
+Version: 0.1.0
+Summary: Package for analyzing and clustering astronomical objects
+Home-page: /https://github.com/clustar/clustar
+Author: NRAO_capstone
+Author-email: jz5jx@virginia.edu
+License: UNKNOWN
+Project-URL: Documentation, NA
+Project-URL: Bug Reports, https://github.com/clustar/clustar/issues
+Project-URL: Source Code, https://github.com/clustar/clustar
+Description: # Clustar
+        
+        A package for analyzing astronomical clusters.
+        
+Keywords: cluster,astronomy,protostars
+Platform: UNKNOWN
+Classifier: Development Status :: 2 - Pre-Alpha
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering :: Astronomy
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+Provides-Extra: dev

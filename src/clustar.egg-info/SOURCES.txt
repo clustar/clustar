@@ -1,0 +1,13 @@
+LICENSE
+MANIFEST.in
+README.md
+setup.cfg
+setup.py
+src/clustar.egg-info/PKG-INFO
+src/clustar.egg-info/SOURCES.txt
+src/clustar.egg-info/dependency_links.txt
+src/clustar.egg-info/requires.txt
+src/clustar.egg-info/top_level.txt
+src/examplepy/__init__.py
+src/examplepy/clustarray.py
+src/examplepy/module1.py
