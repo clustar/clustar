@@ -14,9 +14,12 @@ from astroML.stats.random import bivariate_normal
 import numpy as np
 import pandas as pd
 import pkg_resources
+
+import clustarray
+
 class parameter_fitting(object):
-    def load_example():
-        stream = pkg_resources.resource_stream(__name__, 'data/example.csv')
+    def load_example(file_name):
+        stream = pkg_resources.resource_stream(__name__, file_name)
         stream =  pd.read_csv(stream)
         return stream.to_numpy()
 
@@ -35,12 +38,17 @@ class parameter_fitting(object):
         rv = stats.multivariate_normal([x_bar, y_bar], cov_mat)
         bvg = rv.pdf(pos)
         return [x_bar, y_bar, x_var, y_var, cov_mat, rv, bvg] #Returns the parameters in a list
-        
+
     # Testing Portion:
-    example_array = load_example()
-    
+    example_array = load_example('data/example.csv')
+
     #Fitting:
     parameters = bivariate_gaussian_fit(example_array)
-    print(parameters[0]) #Prints xbar 
-    
+    print(parameters[0]) #Prints xbar
 
+    #testing denoising
+    image = load_example('data/test_fits.csv')
+    pb = load_example('data/test_pb.csv')
+
+    clust = clustarray.ClustArray(image)
+    clust.denoise(pb_array = pb)
