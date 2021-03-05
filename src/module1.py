@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import pkg_resources
 
-import clustarray
+import examplepy.clustarray
 
 class parameter_fitting(object):
     def load_example(file_name):
@@ -50,6 +50,6 @@ class parameter_fitting(object):
     image = load_example('data/test_fits.csv')
     pb = load_example('data/test_pb.csv')
 
-    clust = clustarray.ClustArray(image)
+    clust = examplepy.clustarray.ClustArray(image)
     clust.denoise(pb_array = pb)
     print('Noise level: ' + str(clust.noise_est))
