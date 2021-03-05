@@ -1,11 +1,9 @@
 # Example PyPI (Python Package Index) Package
 import unittest
-from astropy.io import fits
 import astropy.io
 import numpy as np
 import matplotlib
 from astropy.table import Table
-import astropy.io
 from scipy import stats
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
@@ -41,6 +39,6 @@ class parameter_fitting(object):
     
     #Fitting:
     parameters = bivariate_gaussian_fit(example_array)
-    print(parameters[0]) #Prints xbar 
-    
+    dataframe = pd.DataFrame(parameters,index=['xbar','ybar', 'xvar', 'yvar' , 'cov_mat','rv','bvg'])
+    print(dataframe)
 
