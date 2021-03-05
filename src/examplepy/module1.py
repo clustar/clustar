@@ -40,5 +40,5 @@ class parameter_fitting(object):
     #Fitting:
     parameters = bivariate_gaussian_fit(example_array)
     dataframe = pd.DataFrame(parameters,index=['xbar','ybar', 'xvar', 'yvar' , 'cov_mat','rv','bvg'])
-    return dataframe
+    print(dataframe)
 
