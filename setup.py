@@ -16,7 +16,7 @@ setuptools.setup(
         'Documentation': 'NA',
         'Bug Reports':
         'https://github.com/clustar/clustar/issues',
-        'Source Code': 'https://github.com/clustar/clustar',
+        'Source Code': 'https://github.com/clustar/clustar/tree/main/src',
         # 'Funding': '',
         # 'Say Thanks!': '',
     },
