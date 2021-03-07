@@ -5,7 +5,7 @@ with open('README.md', 'r', encoding='utf-8') as fh:
 
 setuptools.setup(
     name='clustar',
-    author='NRAO_capstone',
+    author='jz5jx@virginia.edu',
     author_email='jz5jx@virginia.edu',
     description='Package for analyzing and clustering astronomical objects',
     keywords='cluster, astronomy, protostars',
