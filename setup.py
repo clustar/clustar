@@ -11,7 +11,7 @@ setuptools.setup(
     keywords='cluster, astronomy, protostars',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/clustar/clustar/tree/main/src',
+    url='https://github.com/clustar/clustar',
     project_urls={
         'Documentation': 'NA',
         'Bug Reports':
