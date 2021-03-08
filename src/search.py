@@ -37,9 +37,9 @@ class Clustar(object):
             # image[image < std * 5] = 0
 
             clust = clustarray.ClustArray(image)
-            rms = clust.denoise()
+            clust.denoise()
             image = clust.denoised_arr
-            image[image < rms * 5] = 0
+            image[image < clust.noise_est * 5] = 0
             # -- ------------ --
 
             try:
