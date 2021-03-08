@@ -2,7 +2,7 @@ Metadata-Version: 2.1
 Name: clustar
 Version: 0.1.0
 Summary: Package for analyzing and clustering astronomical objects
-Home-page: /https://github.com/clustar/clustar
+Home-page: https://github.com/clustar/clustar
 Author: NRAO_capstone
 Author-email: jz5jx@virginia.edu
 License: UNKNOWN
