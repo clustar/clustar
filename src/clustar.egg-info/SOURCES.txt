@@ -3,11 +3,11 @@ MANIFEST.in
 README.md
 setup.cfg
 setup.py
+src/__init__.py
+src/clustarray.py
+src/module1.py
 src/clustar.egg-info/PKG-INFO
 src/clustar.egg-info/SOURCES.txt
 src/clustar.egg-info/dependency_links.txt
 src/clustar.egg-info/requires.txt
 src/clustar.egg-info/top_level.txt
-src/__init__.py
-src/clustarray.py
-src/module1.py

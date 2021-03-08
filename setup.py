@@ -13,6 +13,7 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     package_dir={'': 'src'},
     packages=setuptools.find_packages(where='src'),
+    url="https://github.com/clustar/clustar",
     classifiers=[
         # see https://pypi.org/classifiers/
         'Development Status :: 2 - Pre-Alpha',
