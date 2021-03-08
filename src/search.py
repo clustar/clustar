@@ -4,6 +4,8 @@ import sys
 import group
 import fit
 
+import clustarray
+
 
 class Clustar(object):
 
@@ -31,8 +33,13 @@ class Clustar(object):
                 continue
 
             # -- Denoise Here --
-            std = np.std(image)
-            image[image < std * 5] = 0
+            # std = np.std(image)
+            # image[image < std * 5] = 0
+
+            clust = clustarray.ClustArray(image)
+            rms = clust.denoise()
+            image = clust.denoised_arr
+            image[image < rms * 5] = 0
             # -- ------------ --
 
             try:
