@@ -5,7 +5,9 @@ setup.cfg
 setup.py
 src/__init__.py
 src/clustarray.py
-src/module1.py
+src/fit.py
+src/group.py
+src/search.py
 src/clustar.egg-info/PKG-INFO
 src/clustar.egg-info/SOURCES.txt
 src/clustar.egg-info/dependency_links.txt
