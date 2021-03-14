@@ -8,6 +8,7 @@ setuptools.setup(
     author='NRAO-CapstoneGroup',
     author_email='jz5jx@virginia.edu',
     description='Package for analyzing and clustering astronomical objects',
+    py_modules=['clustar'],
     keywords='cluster, astronomy, protostars',
     long_description=long_description,
     long_description_content_type='text/markdown',
