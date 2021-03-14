@@ -176,3 +176,69 @@ class ClustArray:
         noise_lvl = self.get_noise_level()
 
         return(noise_lvl)
+
+    def extract_subgroup(self, group_indices, square = True, buffer = 0.0):
+        '''Function for extracting a subgroup of an image
+
+            Inputs
+            ------
+            group_indices: list containing indices of subgroup [row_min, row_max, col_min, col_max]
+
+            Params
+            ------
+            square: if True, widen shorter axis range to make subgroup a square
+            buffer: fraction to add to each dimension
+                (e.g. if subgroup is 200x200 pixels, buffer = 0.1 will return 220x220 pixels)
+        '''
+        row_min = group_indices[0]
+        row_max = group_indices[1]
+        col_min = group_indices[2]
+        col_max = group_indices[3]
+
+        if square:
+            diff = (row_max - row_min) - (col_max - col_min)
+
+            if diff == 0:
+                #already square
+                pass
+            elif diff < 0:
+                #adjust row min/max
+                row_min += int(np.floor(diff/2))
+                row_max -= int(np.ceil(diff/2))
+            else:
+                #adjust col min/max
+                col_min -= int(np.floor(diff/2))
+                col_max += int(np.ceil(diff/2))
+
+        buffer_width = int(buffer*(col_max - col_min)/2)
+        buffer_height = int(buffer*(row_max - row_min)/2)
+
+        row_min -= buffer_height
+        row_max += buffer_height
+        col_min -= buffer_width
+        col_max += buffer_width
+
+        subgroup = self.im_array[row_min:row_max, col_min:col_max]
+
+        return subgroup
+
+
+    def plot_subgroup(self, group_indices, square = True, buffer = 0.0, colorbar = True):
+        '''Function for plotting a subgroup of an image
+
+            Inputs
+            ------
+            group_indices: list containing indices of subgroup [row_min, row_max, col_min, col_max]
+
+            Params
+            ------
+            square: if True, widen shorter axis range to make subgroup a square
+            buffer: fraction to add to each dimension
+                (e.g. if subgroup is 200x200 pixels, buffer = 0.1 will return 220x220 pixels)
+            colorbar: boolean indicating whether or not to include a colorbar with the plot
+        '''
+        subgroup = self.extract_subgroup(group_indices, square, buffer)
+
+        plt.imshow(subgroup, origin='lower')
+        if colorbar:
+            plt.colorbar()
