@@ -1,218 +1,101 @@
 from scipy import stats
 from scipy import ndimage
 import numpy as np
-from shapely import geometry as geom
+from shapely import geometry
 from shapely import affinity
+import graph
 
 
-def _extract_groups(image, group_ranges, group_data):
-    for i, range_ in enumerate(group_ranges):
-        row_min, row_max, col_min, col_max = range_
+def compute_fit(cd):
+    for group in cd.groups:
+        rv = stats.multivariate_normal([group.stats.x_bar,
+                                        group.stats.y_bar],
+                                       group.stats.covariance_matrix)
+        bvg = rv.pdf(group.image.pos)
 
-        # transform group range into coordinate matrices
-        x = np.arange(col_min, col_max + 1, 1)
-        y = np.arange(row_min, row_max + 1, 1)
-        x, y = np.meshgrid(x, y)
-
-        # position array that contains row/col indexes as ['row', 'col']
-        pos = np.dstack((y, x))
-
-        n_rows = pos.shape[0]
-        n_cols = pos.shape[1]
-
-        # store image data from position indices specified by group range
-        image_data = np.zeros((n_rows, n_cols))
-        for r in range(n_rows):
-            for c in range(n_cols):
-                image_data[r, c] = image[tuple(pos[r, c])]
-
-        group_data[i]['RAW'] = image_data
-
-    return group_data
-
-
-def _compute_fit(group_ranges, group_data, group_stats):
-    residuals = []
-    for i, (range_, data_, stats_) in \
-            enumerate(zip(group_ranges, group_data, group_stats)):
-        fit_stats, fit_data = {}, {}
-        dim = data_['RAW'].shape
-        x = np.arange(0, dim[1], 1)
-        y = np.arange(0, dim[0], 1)
-        x, y = np.meshgrid(x, y)
-
-        x_bar = np.average(x, weights=data_['RAW'])
-        y_bar = np.average(y, weights=data_['RAW'])
-        x_var = np.average((x - x_bar) ** 2, weights=data_['RAW'])
-        y_var = np.average((y - y_bar) ** 2, weights=data_['RAW'])
-        cov = np.average(x * y, weights=data_['RAW']) - x_bar * y_bar
-        cov_mat = np.array([[x_var, cov], [cov, y_var]])
-
-        rv = stats.multivariate_normal([x_bar, y_bar], cov_mat)
-        pos = np.dstack((x, y))
-        bvg = rv.pdf(pos)
-
-        data_max = np.max(data_['RAW'].ravel())
+        data_max = np.max(group.image.data.ravel())
         bvg_max = np.max(bvg.ravel())
         bvg *= data_max / bvg_max
 
-        residual = 1 - (bvg / data_['RAW'])
-        residuals.append(residual)
-
-        fit_stats['X_BAR'] = x_bar
-        fit_stats['Y_BAR'] = y_bar
-        fit_stats['COV_MAT'] = cov_mat
-
-        fit_data['X'] = x
-        fit_data['Y'] = y
-        fit_data['POS'] = pos
-        fit_data['BVG'] = bvg
-        fit_data['RES'] = {'RAW': residual}
-
-        group_stats[i]['FIT'] = fit_stats
-        group_data[i]['FIT'] = fit_data
-
-    return group_data, group_stats
+        group.res.data = 1 - (bvg / group.image.data)
+        group.fit.bvg = bvg
+        group.fit.rv = rv
+    return cd
 
 
-def _compute_ellipse(group_data, group_stats):
-    for i, (data_, stats_) in enumerate(zip(group_data,
-                                            group_stats)):
-        res = data_['FIT']['RES']['RAW']
-        dim = res.shape
-        x_bar = group_stats[i]['FIT']['X_BAR']
-        y_bar = group_stats[i]['FIT']['Y_BAR']
-        x_len = stats_['X_LEN']
-        y_len = stats_['Y_LEN']
-        rad = stats_['RAD']
+def compute_ellipse(cd):
+    for group in cd.groups:
+        a = group.stats.x_len / 2
+        b = group.stats.y_len / 2
 
-        n = 360
-        theta = np.linspace(0, np.pi * 2, n)
-
-        a = x_len / 2
-        b = y_len / 2
-        angle = np.degrees(rad)
+        theta = np.linspace(0, np.pi * 2, 360)
 
         r = a * b / np.sqrt((b * np.cos(theta)) ** 2 +
                             (a * np.sin(theta)) ** 2)
-        xy = np.stack([x_bar + r * np.cos(theta),
-                       y_bar + r * np.sin(theta)], 1)
+        xy = np.stack([group.stats.x_bar + r * np.cos(theta),
+                       group.stats.y_bar + r * np.sin(theta)], 1)
 
-        ellipse = affinity.rotate(geom.Polygon(xy), angle, (x_bar, y_bar))
-        # ellipse_x, ellipse_y = ellipse.exterior.xy
+        ellipse = affinity.rotate(geometry.Polygon(xy),
+                                  group.stats.degrees,
+                                  (group.stats.x_bar, group.stats.y_bar))
 
-        rnd = np.array([[i, j] for i in range(dim[0])
-                        for j in range(dim[1])])
-        res_in = np.array([p for p in rnd
-                           if ellipse.contains(geom.Point(p))])
-        res_out = np.array([p for p in rnd
-                            if not ellipse.contains(geom.Point(p))])
+        pos = np.array([[i, j] for i in range(group.image.data.shape[0])
+                        for j in range(group.image.data.shape[1])])
+        inside = np.array([p for p in pos
+                           if ellipse.contains(geometry.Point(p))])
+        outside = np.array([p for p in pos
+                            if not ellipse.contains(geometry.Point(p))])
 
-        group_data[i]['FIT']['RES']['IN'] = res_in
-        group_data[i]['FIT']['RES']['OUT'] = res_out
+        group.fit.ellipse = ellipse
+        group.res.pos = pos
+        group.res.inside = inside
+        group.res.outside = outside
+    return cd
 
-    return group_data
 
-
-def _compute_residual_stats(group_data, group_stats):
-    for i, (data_, stats_) in enumerate(zip(group_data, group_stats)):
-        res = data_['FIT']['RES']['RAW']
-        res_in = data_['FIT']['RES']['IN']
-
-        output = np.abs(res[res_in[:, 1], res_in[:, 0]])
+def compute_metrics(cd):
+    for group in cd.groups:
+        res = group.res
+        output = np.abs(res.data[res.inside[:, 1], res.inside[:, 0]])
+        output = output.copy()
         output[output < 0] = 0
         output[output > 1] = 1
 
-        group_stats[i]['FIT']['VARIANCE'] = np.std(output) ** 2
-        group_stats[i]['FIT']['AVERAGE'] = np.mean(output)
-        group_stats[i]['FIT']['WEIGHTED AVERAGE'] = \
-            np.average(output, weights=data_['RAW'][res_in[:, 1], res_in[:, 0]])
-        group_data[i]['FIT']['ELLIPSE'] = output
-
-    return group_data, group_stats
-
-
-def _peaks_from_axis(image):
-    n_rows = image.shape[0]
-    n_cols = image.shape[1]
-    mid = n_rows // 2
-
-    y = np.array([image[mid, c] for c in range(n_cols)])
-    x = np.arange(0, len(y), 1)
-
-    b = 5
-    y_avg = []
-    for i in range(len(y)):
-        if i + b > y.shape[0]:
-            b = b - 1
-        if b != 0:
-            y_avg.append(np.mean(y[i:i + b]))
-
-    y = np.array(y_avg)
-    dydx = np.diff(y) / np.diff(x)
-
-    L = np.array([y[i - 1] / y[i] for i in range(1, len(y) // 2) if y[i] != 0])
-    L[L < 0.75] = 0
-    L_ = np.nonzero(L)[0]
-    L_ = [L_[i - 1] for i in range(1, len(L_)) if ((L_[i] - L_[i - 1]) == 1)]
-
-    R = np.array([y[i] / y[i - 1] for i in range(len(y) - 1, len(y) // 2, -1)
-                  if y[i - 1] != 0])
-    R[R < 0.75] = 0
-    R_ = np.nonzero(R)[0]
-    R_ = [R_[i - 1] for i in range(1, len(R_)) if ((R_[i] - R_[i - 1]) == 1)]
-
-    dydx_ = dydx[L_[0]:-R_[0]]
-
-    idx = np.array([i for i in range(1, len(dydx_))
-                    if (dydx_[i - 1] > 0 >= dydx_[i])
-                    or (dydx_[i - 1] < 0 <= dydx_[i])]) + L_[0]
-
-    idx = [idx[i] for i, val in enumerate(idx) if i % 2 == 0]
-
-    return idx
+        bias = group.image.data[res.inside[:, 1], res.inside[:, 0]]
+        group.metrics.standard_deviation = np.std(output)
+        group.metrics.variance = group.metrics.standard_deviation ** 2
+        group.metrics.average = np.mean(output)
+        group.metrics.weighted_average = np.average(output, weights=bias)
+        group.res.output = output
+    return cd
 
 
-def _count_peaks(group_data, group_stats):
-    for i, (data_, stats_) in enumerate(zip(group_data, group_stats)):
-        res = data_['FIT']['RES']['RAW']
-        res_out = data_['FIT']['RES']['OUT']
-        res = np.array(res, copy=True)
+def compute_peaks(cd):
+    for group in cd.groups:
+        res = np.array(group.res.data, copy=True)
+        res_out = group.res.outside
         res[res_out[:, 1], res_out[:, 0]] = 0
 
-        rad = stats_['RAD']
-        r_major = np.abs(ndimage.rotate(res, np.degrees(rad)))
-        r_minor = np.abs(ndimage.rotate(res, np.degrees(rad) + 90))
+        r_major = np.abs(ndimage.rotate(res, group.stats.degrees))
+        r_minor = np.abs(ndimage.rotate(res, group.stats.degrees + 90))
 
-        major_idx = _peaks_from_axis(r_major)
-        minor_idx = _peaks_from_axis(r_minor)
+        major_idx = graph.identify_peaks(r_major)
+        minor_idx = graph.identify_peaks(r_minor)
 
-        group_stats[i]['FIT']['MAJOR PEAKS'] = len(major_idx)
-        group_stats[i]['FIT']['MINOR PEAKS'] = len(minor_idx)
-
-    return group_stats
-
-
-def _filter_threshold(metric, threshold, group_stats):
-    output = []
-    for stats_ in group_stats:
-        if stats_['FIT'][metric.upper()] > threshold:
-            if ((stats_['FIT']['MAJOR PEAKS'] not in [2, 4]) or
-                    (stats_['FIT']['MINOR PEAKS'] not in [2, 4])):
-                output.append(True)
-            else:
-                output.append(False)
-        else:
-            output.append(False)
-    return output
+        group.fit.major_peaks = len(major_idx)
+        group.fit.minor_peaks = len(minor_idx)
+        group.res.clean = res
+    return cd
 
 
-def bivariate_gaussian(image, metric, threshold,
-                       group_ranges, group_data, group_stats):
-    group_data = _extract_groups(image, group_ranges, group_data)
-    group_data, group_stats = _compute_fit(group_ranges, group_data, group_stats)
-    group_data = _compute_ellipse(group_data, group_stats)
-    group_data, group_stats = _compute_residual_stats(group_data, group_stats)
-    group_stats = _count_peaks(group_data, group_stats)
-    output = _filter_threshold(metric, threshold, group_stats)
-    return group_data, group_stats, output
+def validate(cd):
+    attribute = cd.params.metric.lower()
+    threshold = cd.params.threshold
+    for group in cd.groups:
+        metric = getattr(group.metrics, attribute)
+        if metric > threshold:
+            if ((group.fit.major_peaks not in [2, 4]) or
+                    (group.fit.minor_peaks not in [2, 4])):
+                group.flag = True
+                cd.flag = True
+    return cd
