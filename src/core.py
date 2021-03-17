@@ -1,8 +1,17 @@
+import numpy as np
+from clustarray import ClustArray
+import group
+import fit
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+
+
 class ClustarData(object):
     class Image(object):
 
         def __init__(self, data):
             self.data = data
+            self.clean = None
             self.x = None
             self.y = None
             self.pos = None
@@ -15,33 +24,40 @@ class ClustarData(object):
             self.x, self.y = np.meshgrid(x, y)
             self.pos = np.dstack((self.x, self.y))
             self.data = np.nan_to_num(self.data, nan=0)
-            self.nonzero = np.dstack(np.nonzero(self.data))[0]
 
     class Group(object):
 
         class _Image(object):
 
             def __init__(self, bounds):
-                self.data = None
                 self.bounds = bounds
+                self.data = None
+                self.clean = None
                 self.x = None
                 self.y = None
                 self.ref = None
                 self.limit = None
                 self.pos = None
+                self.nonzero = None
 
         class _Residuals(object):
 
             def __init__(self):
+                self.data = None
+                self.clean = None
                 self.pos = None
                 self.inside = None
                 self.outside = None
+                self.output = None
 
         class _Fit(object):
 
             def __init__(self):
+                self.rv = None
                 self.bvg = None
                 self.ellipse = None
+                self.major_peaks = None
+                self.minor_peaks = None
 
         class _Stats(object):
 
@@ -50,11 +66,15 @@ class ClustarData(object):
                 self.y_bar = None
                 self.x_var = None
                 self.y_var = None
+                self.x_len = None
+                self.y_len = None
                 self.covariance = None
                 self.covariance_matrix = None
                 self.rho = None
                 self.eigen_values = None
                 self.eigen_vectors = None
+                self.radians = None
+                self.degrees = None
 
         class _Metrics(object):
 
@@ -66,94 +86,97 @@ class ClustarData(object):
 
         def __init__(self, bounds):
             self.image = self._Image(bounds)
-            self.residuals = self._Residuals()
+            self.res = self._Residuals()
             self.fit = self._Fit()
             self.stats = self._Stats()
             self.metrics = self._Metrics()
+            self.flag = False
 
-    def __init__(self, data):
+    class Params(object):
+
+        def __init__(self, args):
+            self.alpha = 0.2
+            self.buffer_size = 10
+            self.group_size = 50
+            self.group_factor = 0
+            self.subgroup_factor = 0.5
+            self.metric = "variance"
+            self.threshold = 0.01
+            self.smoothing = 5
+            self.clip = 0.75
+            self.extract(args)
+
+        def extract(self, args):
+            for key in args:
+                if key not in vars(self).keys():
+                    raise KeyError(f"Invalid keyword '{key}' has been " +
+                                   "passed into the ClustarData object.")
+                setattr(self, key, args[key])
+
+    def __init__(self, data, **kwargs):
         self.image = self.Image(data)
+        self.params = self.Params(kwargs)
         self.groups = []
+        self.flag = False
+        self.denoise()
+        self.setup()
 
     def setup(self):
-        self.arrange_groups()
-        self.compute_stats()
+        self = group.arrange(self)
+        self.build()
+        self = group.detect(self)
+        self.build()
+        self.evaluate()
 
-    def arrange_groups(self):
-        for group in self.groups:
-            row_min, row_max, col_min, col_max = group.image.bounds
-            x = np.arange(col_min, col_max + 1, 1)
-            y = np.arange(row_min, row_max + 1, 1)
-            group.image.x, group.image.y = np.meshgrid(x, y)
-            group.image.pos = np.dstack((group.image.y, group.image.x))
+    def build(self):
+        self = group.merge(self)
+        self = group.extract(self)
+        self = group.refine(self)
+        self = group.calculate(self)
+        self = group.rectify(self)
 
-            n_rows = group.image.pos.shape[0]
-            n_cols = group.image.pos.shape[1]
+    def evaluate(self):
+        self = fit.compute_fit(self)
+        self = fit.compute_ellipse(self)
+        self = fit.compute_metrics(self)
+        self = fit.compute_peaks(self)
+        self = fit.validate(self)
 
-            group.image.data = np.zeros((n_rows, n_cols))
-            for r in range(n_rows):
-                for c in range(n_cols):
-                    group.image.data[r, c] = \
-                        self.image.data[tuple(group.image.pos[r, c])]
+    def update(self, **kwargs):
+        self.params.extract(kwargs)
+        self.setup()
 
-            group.image.ref = [col_min, row_min]
-            group.image.limit = [self.image.data.shape[0],
-                                 self.image.data.shape[1]]
+    def reset(self, **kwargs):
+        self.params = self.Params(kwargs)
+        self.setup()
 
-    def compute_stats(self):
-        for group in self.groups:
-            stats_ = group.stats
-            image_ = group.image
-            try:
-                stats_.x_bar = np.average(image_.x, weights=image_.data)
-                stats_.y_bar = np.average(image_.y, weights=image_.data)
-                stats_.x_var = np.average((image_.x - stats_.x_bar) ** 2,
-                                          weights=image_.data)
-                stats_.y_var = np.average((image_.y - stats_.y_bar) ** 2,
-                                          weights=image_.data)
-                stats_.covariance = np.average(image_.x * image_.y,
-                                               weights=image_.data) - \
-                                    stats_.x_bar * stats_.y_bar
+    def denoise(self):
+        ca = ClustArray(self.image.data)
+        ca.denoise()
+        image = ca.denoised_arr
+        image[image < ca.noise_est * 5] = 0
+        image = np.nan_to_num(image, nan=0)
+        #         image = self.image.data.copy()
+        #         std = np.std(image)
+        #         image[image < std * 5] = 0
+        self.image.nonzero = np.dstack(np.nonzero(image))[0]
+        self.image.clean = image
 
-            # if there is a 'ZeroDivisionError', then delete group
-            except ZeroDivisionError:
-                del group
-                continue
+    def identify(self, vmin=None, vmax=None, show=True, dpi=180):
+        plt.figure(figsize=(10, 5), dpi=dpi)
+        plt.imshow(self.image.data, origin="lower", vmin=vmin, vmax=vmax)
 
-            # if the variance of X or Y is 0, then delete group
-            if 0 in [stats_.x_var, stats_.y_var]:
-                del group
-                continue
+        for i, grp in enumerate(self.groups):
+            bounds = grp.image.bounds
+            length = bounds[1] - bounds[0]
+            if show:
+                edgecolor = "red" if grp.flag else "lime"
+                plt.gca().add_patch(Rectangle(tuple(grp.image.ref),
+                                              length, length,
+                                              edgecolor=edgecolor,
+                                              facecolor='none', lw=0.5))
 
-            # otherwise, compute rho, covariance matrix
-            stats_.rho = stats_.covariance / (np.sqrt(stats_.x_var) *
-                                              np.sqrt(stats_.y_var))
-            stats_.covariance_matrix = np.array([[stats_.x_var,
-                                                  stats_.covariance],
-                                                 [stats_.covariance,
-                                                  stats_.y_var]])
-
-            # compute statistics required for ellipse parameters
-            stats_.eigen_values, stats_.eigen_vectors = \
-                np.linalg.eig(stats_.covariance_matrix)
-
-            if stats_.eigen_values[0] >= stats_.eigen_values[1]:
-                stats_.radians = np.arctan(stats_.eigen_vectors[1][0] /
-                                           stats_.eigen_vectors[1][1])
-                stats_.degrees = np.degrees(stats_.radians)
-            else:
-                stats_.radians = np.arctan(stats_.eigen_vectors[0][0] /
-                                           stats_.eigen_vectors[0][1])
-                stats_.degrees = np.degrees(stats_.radians)
-
-
-if __name__ == "__main__":
-    import numpy as np
-
-    image = np.zeros((10, 10))
-    image[1:4, 1:4] = 1
-    image[1:4, 6:9] = 1
-    image[6:9, 1:4] = 1
-    image[6:9, 6:9] = 1
-    cd = ClustarData(image)
-    print(cd.image.data)
+            plt.annotate(i + 1, xy=(bounds[3] + 10, bounds[1] + 10), fontsize=6.5,
+                         color='white')
+        plt.colorbar()
+        plt.show()
