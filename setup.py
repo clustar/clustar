@@ -26,7 +26,7 @@ setup(
     package_dir={'': 'src'},  
     packages=find_packages(where='src'),  # Required
     package_data={
-        "clustar_package": ["data/*.csv"],
+        "": ["data/*.csv"],
     },
     python_requires='>=3.6, <4',
 )
