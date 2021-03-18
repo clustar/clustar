@@ -12,7 +12,7 @@ import pkg_resources
 # from astroML.stats import fit_bivariate_normal
 # from astroML.stats.random import bivariate_normal
 
-import clustarray
+from clustar import clustarray
 
 class parameter_fitting(object):
     def load_example(file_name):
