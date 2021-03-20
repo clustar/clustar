@@ -22,8 +22,18 @@ class Clustar(object):
 
             try:
                 cd = ClustarData(image, **self.params)
-                if cd.flag:
-                    output.append(cd)
+
+                jsn_list = []
+                group_num = 1
+                for group in cd.groups:
+                    jsn = {}
+                    jsn['file'] = file_path
+                    jsn['group'] = group_num
+                    jsn['bounds'] = group.image.bounds
+                    jsn['data'] = group.image.data.tolist()
+                    jsn['flag'] = cd.flag
+                    jsn_list.append(jsn)
+                    group_num += 1
 
             except Exception:
                 errors.append(file_path)
@@ -33,4 +43,4 @@ class Clustar(object):
                              f'| Errors: {len(errors)}')
             sys.stderr.flush()
 
-        return output, errors
+        return jsn_list, errors
