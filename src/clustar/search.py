@@ -12,6 +12,7 @@ class Clustar(object):
     def run(self, files):
         output = []
         errors = []
+        jsn_list = []
         for i, file_path in enumerate(files):
             file = fits.open(file_path)
             origin_image = file[0].data[0, 0, :, :]
@@ -23,7 +24,6 @@ class Clustar(object):
             try:
                 cd = ClustarData(image, **self.params)
 
-                jsn_list = []
                 group_num = 1
                 for group in cd.groups:
                     jsn = {}
