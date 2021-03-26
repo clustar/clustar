@@ -32,6 +32,7 @@ class Clustar(object):
                     jsn['group'] = group_num
                     jsn['bounds'] = group.image.bounds
                     jsn['data'] = group.image.data.tolist()
+                    jsn['residuals'] = group.res.data.tolist()
                     jsn['flag'] = cd.flag
                     if cd.flag:
                         flag_count += 1
