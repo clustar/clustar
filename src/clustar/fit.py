@@ -56,12 +56,12 @@ def compute_ellipse(cd):
 def compute_metrics(cd):
     for group in cd.groups:
         res = group.res
-        output = np.abs(res.data[res.inside[:, 1], res.inside[:, 0]])
+        output = np.abs(res.data[res.inside[:, 0], res.inside[:, 1]])
         output = output.copy()
         output[output < 0] = 0
         output[output > 1] = 1
 
-        bias = group.image.data[res.inside[:, 1], res.inside[:, 0]]
+        bias = group.image.data[res.inside[:, 0], res.inside[:, 1]]
         group.metrics.standard_deviation = np.std(output)
         group.metrics.variance = group.metrics.standard_deviation ** 2
         group.metrics.average = np.mean(output)
@@ -74,13 +74,18 @@ def compute_peaks(cd):
     for group in cd.groups:
         res = np.array(group.res.data, copy=True)
         res_out = group.res.outside
-        res[res_out[:, 1], res_out[:, 0]] = 0
+        res[res_out[:, 0], res_out[:, 1]] = 0
 
         r_major = np.abs(ndimage.rotate(res, group.stats.degrees))
         r_minor = np.abs(ndimage.rotate(res, group.stats.degrees + 90))
 
-        major_idx = graph.identify_peaks(r_major)
-        minor_idx = graph.identify_peaks(r_minor)
+        major_idx = graph.critical_points(r_major)
+        minor_idx = graph.critical_points(r_minor)
+
+        major_idx = [major_idx[i] for i in range(len(major_idx))
+                     if i % 2 == 0]
+        minor_idx = [minor_idx[i] for i in range(len(minor_idx))
+                     if i % 2 == 0]
 
         group.fit.major_peaks = len(major_idx)
         group.fit.minor_peaks = len(minor_idx)
