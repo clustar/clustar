@@ -1,0 +1,8 @@
+numpy~=1.20.1
+scipy~=1.6.1
+Shapely~=1.7.1
+astropy~=4.2
+matplotlib~=3.3.4
+pandas~=1.2.3
+clustar~=0.0.0
+setuptools~=54.1.1
