@@ -7,7 +7,7 @@ import fit
 
 
 class ClustarData(object):
-    
+
     class Image(object):
 
         def __init__(self, data):
