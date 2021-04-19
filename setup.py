@@ -7,6 +7,7 @@ setup(
     author='NRAO-CapstoneGroup',
     author_email='jz5jx@virginia.edu',
     description='Package for analyzing and clustering astronomical objects',
+    version='1.1.2',
     keywords='cluster, astronomy, protostars',
     long_description=long_description,
     long_description_content_type='text/markdown',

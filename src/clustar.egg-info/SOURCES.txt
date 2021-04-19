@@ -4,10 +4,6 @@ README.md
 pyproject.toml
 setup.cfg
 setup.py
-data/.DS_Store
-data/example.csv
-data/test_fits.csv
-data/test_pb.csv
 src/clustar/__init__.py
 src/clustar/clustarray.py
 src/clustar/core.py
@@ -20,3 +16,6 @@ src/clustar.egg-info/PKG-INFO
 src/clustar.egg-info/SOURCES.txt
 src/clustar.egg-info/dependency_links.txt
 src/clustar.egg-info/top_level.txt
+src/clustar/data/example.csv
+src/clustar/data/test_fits.csv
+src/clustar/data/test_pb.csv

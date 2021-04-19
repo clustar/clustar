@@ -12,6 +12,8 @@ class Clustar(object):
     def run(self, files):
         output = []
         errors = []
+        jsn_list = []
+        flag_count = 0
         for i, file_path in enumerate(files):
             file = fits.open(file_path)
             origin_image = file[0].data[0, 0, :, :]
@@ -22,15 +24,26 @@ class Clustar(object):
 
             try:
                 cd = ClustarData(image, **self.params)
-                if cd.flag:
-                    output.append(cd)
+
+                group_num = 1
+                for group in cd.groups:
+                    jsn = {}
+                    jsn['file'] = file_path
+                    jsn['group'] = group_num
+                    jsn['bounds'] = group.image.bounds
+                    jsn['data'] = group.image.data.tolist()
+                    jsn['flag'] = cd.flag
+                    if cd.flag:
+                        flag_count += 1
+                    jsn_list.append(jsn)
+                    group_num += 1
 
             except Exception:
                 errors.append(file_path)
 
             sys.stderr.write(f'\rFile: {i + 1}/{len(files)} ' +
-                             f'| Flagged: {len(output)} ' +
+                             f'| Flagged: {flag_count} ' +
                              f'| Errors: {len(errors)}')
             sys.stderr.flush()
 
-        return output, errors
+        return jsn_list, errors
