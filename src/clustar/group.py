@@ -1,7 +1,7 @@
 from scipy import stats
 from scipy import ndimage
 import numpy as np
-import graph
+from clustar import *
 
 
 def arrange(cd):

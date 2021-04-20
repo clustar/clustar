@@ -11,7 +11,7 @@ import pkg_resources
 # import astropy.io
 # from astroML.stats import fit_bivariate_normal
 # from astroML.stats.random import bivariate_normal
-
+from clustar import *
 from clustar import clustarray
 
 class parameter_fitting(object):

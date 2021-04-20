@@ -1,7 +1,7 @@
 import warnings
 import numpy as np
 import itertools
-
+from clustar import *
 class ClustArray:
     ''' Class for working with data from FITS images
         Initialized from a numpy array from an image

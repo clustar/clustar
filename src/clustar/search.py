@@ -1,7 +1,8 @@
 from astropy.io import fits
 import numpy as np
 import sys
-from core import ClustarData
+from clustar.core import *
+from clustar import *
 
 
 class Clustar(object):

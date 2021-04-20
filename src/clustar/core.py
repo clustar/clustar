@@ -1,9 +1,7 @@
 import numpy as np
 import astropy.io
-from clustarray import ClustArray
-import group
-import graph
-import fit
+from clustar.clustarray import ClustArray
+from clustar import *
 
 
 class ClustarData(object):

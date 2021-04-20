@@ -1,12 +1,11 @@
 import numpy as np
-from clustarray import ClustArray
-import group
-import fit
-import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
+import astropy.io
+from clustar.clustarray import ClustArray
+from clustar import *
 
 
 class ClustarData(object):
+
     class Image(object):
 
         def __init__(self, data):
@@ -99,6 +98,7 @@ class ClustarData(object):
             self.buffer_size = 10
             self.group_size = 50
             self.group_factor = 0
+            self.split_binary = False
             self.subgroup_factor = 0.5
             self.metric = "variance"
             self.threshold = 0.01
@@ -113,27 +113,36 @@ class ClustarData(object):
                                    "passed into the ClustarData object.")
                 setattr(self, key, args[key])
 
-    def __init__(self, data, **kwargs):
-        self.image = self.Image(data)
+    def __init__(self, path, **kwargs):
+        self.image = None
+        self.header = None
         self.params = self.Params(kwargs)
         self.groups = []
+        self.load_file(path)
         self.flag = False
         self.denoise()
         self.setup()
 
+    def load_file(self, path):
+        file = astropy.io.fits.open(path)
+        data = file[0].data[0, 0, :, :]
+        self.image = self.Image(data)
+        self.header = file[0].header
+
     def setup(self):
         self = group.arrange(self)
         self.build()
-        self = group.detect(self)
-        self.build()
+        if self.params.split_binary:
+            self = group.detect(self)
+            self.build()
         self.evaluate()
 
     def build(self):
-        self = group.merge(self)
-        self = group.extract(self)
-        self = group.refine(self)
-        self = group.calculate(self)
         self = group.rectify(self)
+        self = group.merge(self)
+        self = group.refine(self)
+        self = group.extract(self)
+        self = group.calculate(self)
 
     def evaluate(self):
         self = fit.compute_fit(self)
@@ -163,20 +172,4 @@ class ClustarData(object):
         self.image.clean = image
 
     def identify(self, vmin=None, vmax=None, show=True, dpi=180):
-        plt.figure(figsize=(10, 5), dpi=dpi)
-        plt.imshow(self.image.data, origin="lower", vmin=vmin, vmax=vmax)
-
-        for i, grp in enumerate(self.groups):
-            bounds = grp.image.bounds
-            length = bounds[1] - bounds[0]
-            if show:
-                edgecolor = "red" if grp.flag else "lime"
-                plt.gca().add_patch(Rectangle(tuple(grp.image.ref),
-                                              length, length,
-                                              edgecolor=edgecolor,
-                                              facecolor='none', lw=0.5))
-
-            plt.annotate(i + 1, xy=(bounds[3] + 10, bounds[1] + 10), fontsize=6.5,
-                         color='white')
-        plt.colorbar()
-        plt.show()
+        graph.identify_groups(self, vmin, vmax, show, dpi)

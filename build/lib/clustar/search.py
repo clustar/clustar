@@ -1,19 +1,19 @@
 from astropy.io import fits
 import numpy as np
 import sys
-from core import ClustarData
+from clustar.core import *
+from clustar import *
 
 
 class Clustar(object):
 
     def __init__(self, **kwargs):
         self.params = kwargs
+        self.files = []
 
     def run(self, files):
-        output = []
-        errors = []
+        counter = 0
         jsn_list = []
-        flag_count = 0
         for i, file_path in enumerate(files):
             file = fits.open(file_path)
             origin_image = file[0].data[0, 0, :, :]
@@ -22,28 +22,23 @@ class Clustar(object):
             if image.shape[0] > 2000:
                 continue
 
-            try:
-                cd = ClustarData(image, **self.params)
+            cd = ClustarData(file_path, **self.params)
+            self.files.append(cd)
 
-                group_num = 1
-                for group in cd.groups:
-                    jsn = {}
-                    jsn['file'] = file_path
-                    jsn['group'] = group_num
-                    jsn['bounds'] = group.image.bounds
-                    jsn['data'] = group.image.data.tolist()
-                    jsn['flag'] = cd.flag
-                    if cd.flag:
-                        flag_count += 1
-                    jsn_list.append(jsn)
-                    group_num += 1
+            for index, group in enumerate(cd.groups):
+                jsn = {'file': file_path,
+                       'group': index,
+                       'bounds': group.image.bounds,
+                       'data': group.image.data.tolist(),
+                       'residuals': group.res.data.tolist(),
+                       'flag': cd.flag}
+                jsn_list.append(jsn)
 
-            except Exception:
-                errors.append(file_path)
+            if cd.flag:
+                counter += 1
 
             sys.stderr.write(f'\rFile: {i + 1}/{len(files)} ' +
-                             f'| Flagged: {flag_count} ' +
-                             f'| Errors: {len(errors)}')
+                             f'| Flagged: {counter} ')
             sys.stderr.flush()
 
-        return jsn_list, errors
+        return jsn_list

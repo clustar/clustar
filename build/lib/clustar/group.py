@@ -1,7 +1,7 @@
 from scipy import stats
 from scipy import ndimage
 import numpy as np
-import graph
+from clustar import *
 
 
 def arrange(cd):
@@ -156,9 +156,9 @@ def rectify(cd):
     # converts image data from the groups to a square matrix by inserting
     # additional rows or columns to the shorter axis
     for group in cd.groups:
-        image = group.image.data
-        n_rows = image.shape[0]
-        n_cols = image.shape[1]
+        bounds = group.image.bounds
+        n_rows, n_cols = [bounds[i] - bounds[i - 1]
+                          for i in range(1, len(bounds)) if i % 2 == 1]
 
         # continue for image data that is already a square matrix
         if n_rows == n_cols:
@@ -168,25 +168,21 @@ def rectify(cd):
         split = diff // 2
         shape = n_rows if n_rows > n_cols else n_cols
 
-        a = np.zeros((split, shape))
-        b = np.zeros((diff - split, shape))
-
         # update group ranges for new dimensions of the image data
-        row_min, row_max, col_min, col_max = group.image.bounds
+        row_min, row_max, col_min, col_max = bounds
+        r_max, c_max = cd.image.data.shape
 
-        # add roughly equal sets of arrays containing 0's to either ends
         if n_rows > n_cols:
-            image = np.insert(image, 0, a, axis=1)
-            image = np.insert(image, len(image[0]), b, axis=1)
-            col_min -= a.shape[0]
-            col_max += b.shape[0]
+            col_min -= split
+            col_min = col_min if col_min > 0 else 0
+            col_max += diff - split
+            col_max = col_max if col_max < c_max else c_max - 1
         else:
-            image = np.insert(image, 0, a, axis=0)
-            image = np.append(image, b, axis=0)
-            row_min -= a.shape[0]
-            row_max += b.shape[0]
+            row_min -= split
+            row_min = row_min if row_min > 0 else 0
+            row_max += diff - split
+            row_max = row_max if row_max < r_max else r_max - 1
 
-        group.image.data = image
         group.image.bounds = [row_min, row_max, col_min, col_max]
 
     return cd
@@ -219,124 +215,75 @@ def merge(cd):
 
 
 def refine(cd):
-    threshold = cd.params.group_factor * np.max([len(group.image.nonzero)
-                                                 for group in cd.groups])
-    i = 0
-    while i < len(cd.groups):
-        if ((len(cd.groups[i].image.nonzero) < cd.params.group_size) or
-                (len(cd.groups[i].image.nonzero) < threshold)):
-            del cd.groups[i]
-            i -= 1
-        i += 1
+    if len(cd.groups) > 0:
+        group_ranges = [group.image.bounds for group in cd.groups]
+        group_sizes = [(group_range[1] - group_range[0]) ** 2
+                       for group_range in group_ranges]
+
+        threshold = cd.params.group_factor * np.max(group_sizes)
+        i = 0
+        while i < len(group_sizes):
+            if ((group_sizes[i] < cd.params.group_size) or
+                    (group_sizes[i] < threshold)):
+                del cd.groups[i]
+                del group_sizes[i]
+                i -= 1
+            i += 1
 
     return cd
 
 
 def detect(cd):
     group_ranges = []
-
     for group in cd.groups:
-        image_ = group.image
-        stats_ = group.stats
 
-        # rotate image along the major axis as defined by 'stats_['RAD']'
-        r = ndimage.rotate(image_.data, stats_.degrees)
+        # rotate image along the degree of the major axis
+        rotated_image = ndimage.rotate(group.image.data, group.stats.degrees)
 
-        n_rows = r.shape[0]
-        n_cols = r.shape[1]
+        # coordinates of the critical points on the rotated image
+        idx = graph.critical_points(rotated_image, smoothing=1)
+        idx = [idx[i] for i in range(len(idx)) if i % 2 == 0]
 
-        # row, col indexes for maximum intensity from image data
-        r_mid, c_mid = np.where(r == np.max(r))
-        r_mid, c_mid = r_mid[0], c_mid[0]
-
-        # image data from the center row of the rotated image
-        y = np.array([r[r_mid, c] for c in range(n_cols)])
-
-        # trim off 10% of the image data from both ends
-        trim = int(len(y) * 0.10)
-
-        x = np.arange(0 + trim, len(y) - trim, 1)
-        y = y[trim:len(y) - trim]
-
-        # compute the first derivative on the image data
-        try:
-            dydx = np.diff(y) / np.diff(x)
-
-        # ignore non-differentiable groups
-        except ValueError:
-            group_ranges.append(group.image.bounds)
-            continue
-
-        # indexes of critical points (i.e. where the first derivative
-        # (dydx) crosses 0 from +/- or -/+)
-        indexes = [i for i in range(1, len(dydx))
-                   if (dydx[i - 1] > 0 >= dydx[i]) or
-                   (dydx[i - 1] < 0 <= dydx[i])]
-        values = []
-
-        # if there is more than one critical point, this may indicate the
-        # presence of subgroups within the image data
-        if len(indexes) > 1:
-            # values of critical points along the center row of image data
-            values = [r[r_mid, x[indexes[i]]] for i in range(len(indexes))]
-
-            # peak-to-peak amplitude of the values (intensities)
-            dists = [r[r_mid, x[indexes[i - 1]]] - r[r_mid, x[indexes[i]]]
-                     for i in range(1, len(indexes))]
-
-            # drop values whose amplitudes do not fall within the specified
-            # range of the absolute amplitude
-            buffer = cd.params.subgroup_factor * np.max(np.abs(dists))
-            limit = np.max(values) - buffer
-            values = [value for value in values if value >= limit]
-
-        # remaining values correspond to the centers of a new group
-        if (1 < len(values) < 3):
-
-            # coords of the critical points on the rotated image
-            c = np.array([[x[i], r_mid] for i in indexes])
+        if len(idx) == 3:
 
             # original center of the un-rotated image
-            org_center = (np.array(image_.data.shape[:2][::-1]) - 1) / 2
+            org_center = (np.array(group.image.data.shape[:2][::-1]) - 1) / 2
 
             # rotation center of the rotated image
-            rot_center = (np.array(r.shape[:2][::-1]) - 1) / 2
+            rot_center = (np.array(rotated_image.shape[:2][::-1]) - 1) / 2
 
             # rotation matrix for rotating image back to original
-            r_mat = np.array([[np.cos(stats_.radians),
-                               np.sin(stats_.radians)],
-                              [-np.sin(stats_.radians),
-                               np.cos(stats_.radians)]])
+            r_mat = np.array([[np.cos(group.stats.radians),
+                               np.sin(group.stats.radians)],
+                              [-np.sin(group.stats.radians),
+                               np.cos(group.stats.radians)]])
 
-            # coords of the critical points on the original image
-            coords = np.dot(c - rot_center, r_mat) + org_center
+            # coordinates of the critical points on the original image
+            coords = np.dot(idx - rot_center, r_mat) + org_center
+            points = np.array(np.round(coords), dtype=int).tolist()
 
-            # Euclidean distance between local maxima and local minima
-            buffers = [int(np.linalg.norm(coords[i] - coords[i - 1]))
-                       for i in range(1, len(coords))]
+            # convert coordinates into a group range
+            row_min, col_min = group.image.ref
+            r_limit, c_limit = group.image.limit
+            for i in range(1, len(coords)):
+                a = points[i - 1]
+                b = points[i]
 
-            # convert distances into 'group ranges'
-            bounds = [np.repeat(coords[i], 2)
-                      for i in range(0, len(coords), 2)]
-            bounds = np.array(bounds, dtype=int).tolist()
+                r, c = np.dstack([a, b])[0]
 
-            row_min, col_min = image_.ref
-            r_limit, c_limit = image_.limit
-            for bound, b in zip(bounds, buffers):
-                r_min, r_max, c_min, c_max = bound
-                r_min += row_min - b
-                r_max += row_min + b
-                c_min += col_min - b
-                c_max += col_min + b
+                r += row_min
+                r = [r_limit if r_ > r_limit else r_ for r_ in r]
+                r = [0 if r_ < 0 else r_ for r_ in r]
 
-                if r_min < 0: r_min = 0
-                if c_min < 0: c_min = 0
-                if r_max > r_limit: r_max = r_limit
-                if c_max > c_limit: c_max = c_limit
+                c += col_min
+                c = [c_limit if c_ > c_limit else c_ for c_ in c]
+                c = [0 if c_ < 0 else c_ for c_ in c]
+                group_range = [np.min(c), np.max(c), np.min(r), np.max(r)]
+                group_ranges.append(group_range)
 
-                group_ranges.append([c_min, c_max, r_min, r_max])
         else:
-            group_ranges.append(image_.bounds)
+            group_ranges.append(group.image.bounds)
 
-    cd.groups = [cd.Group(bound) for bound in group_ranges]
+        cd.groups = [cd.Group(bound) for bound in group_ranges]
+
     return cd

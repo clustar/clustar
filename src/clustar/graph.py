@@ -2,7 +2,7 @@ import numpy as np
 from scipy import ndimage
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
-
+from clustar import *
 
 def critical_points(image, angle=0, smoothing=5, clip=0.75, center=None):
     # rotate image along the degree of the major axis
