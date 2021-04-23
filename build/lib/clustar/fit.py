@@ -3,7 +3,7 @@ from scipy import ndimage
 import numpy as np
 from shapely import geometry
 from shapely import affinity
-from clustar import *
+from clustar import graph
 
 
 def compute_fit(cd):

@@ -1,39 +1,133 @@
-# A sample Python project
-
-![Python Logo](https://www.python.org/static/community_logos/python-logo.png "Sample inline image")
-
-A sample project that exists as an aid to the [Python Packaging User
-Guide][packaging guide]'s [Tutorial on Packaging and Distributing
-Projects][distribution tutorial].
-
-This project does not aim to cover best practices for Python project
-development as a whole. For example, it does not provide guidance or tool
-recommendations for version control, documentation, or testing.
-
-[The source for this project is available here][src].
-
-Most of the configuration for a Python project is done in the `setup.py` file,
-an example of which is included in this project. You should edit this file
-accordingly to adapt this sample project to your needs.
-
-----
-
-This is the README file for the project.
-
-The file should use UTF-8 encoding and can be written using
-[reStructuredText][rst] or [markdown][md use] with the appropriate [key set][md
-use]. It will be used to generate the project webpage on PyPI and will be
-displayed as the project homepage on common code-hosting services, and should be
-written for that purpose.
-
-Typical contents for this file would include an overview of the project, basic
-usage examples, etc. Generally, including the project changelog in here is not a
-good idea, although a simple “What's New” section for the most recent version
-may be appropriate.
-
-[packaging guide]: https://packaging.python.org
-[distribution tutorial]: https://packaging.python.org/tutorials/packaging-projects/
-[src]: https://github.com/pypa/sampleproject
-[rst]: http://docutils.sourceforge.net/rst.html
-[md]: https://tools.ietf.org/html/rfc7764#section-3.5 "CommonMark variant"
-[md use]: https://packaging.python.org/specifications/core-metadata/#description-content-type-optional
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Clustar\n",
+    "\n",
+    "Release: 1.1.10\n",
+    "\n",
+    "Date: April 23, 2021"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Import"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "-- how to install clustar -- "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'pip install clustar'"
+      ]
+     },
+     "execution_count": 2,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "''' pip install clustar '''"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Motivation"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The motivation for using clustar is to identify prostars/ protoplanetary disks found from fits files. These files are represented as 2d array's containing intensities at each point along with the header information about the telescope observational parameters. Clustar simplifies and expediates the identification pipeline of fits files by automating the preprocessing, grouping, fitting, and non supervised learning for a group of fits files. Clustar is optimized in its codebase primarily in its efficacy in identifying non - bivariate Gaussian like substructures and is tested on the Tobin dataset."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Preprocessing"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Clustar crops the input image from a square dimension to a circle. This is done to alleviate the higher noise around the edges of the image. After cropping, clustar utilizes a technique known as sigma clipping to filter out the data points that are 5 times the RMS statistic. "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Grouping"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Fitting"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Summary"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Clustar should be utilized to identify protostars and other potential celestial objects that are suspected to be non-bivariate Gaussian. The t-SNE clustering methods further identify images with substructures that may be of interest. Anyone that works with fits files can utilize the different methods idependently or as a pipeline to preprocess, group, fit, and cluster their data."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.8.3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}
