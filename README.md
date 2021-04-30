@@ -1,23 +1,31 @@
 
-### Clustar
+## Clustar
 
 Release: 1.1.10
 
 Date: April 23, 2021
 
-### Import
+Clustar is a python package using machine learning algorithms for processing and analyzing prostars/protoplanetary disks. 
+
+Links to our [paper]()
+
+## Import
 
 -- how to install clustar -- 
 
-''' pip install clustar '''
+```python
+$ pip install clustar
+```
 
-### Motivation
+Imports and basic examples can be found on the [Clustar github page](https://clustar.github.io/)
 
-The motivation for using clustar is to identify prostars/ protoplanetary disks found from FITS files. These files are represented as 2d array's containing intensities at each point along with the header information about the telescope observational parameters. Clustar simplifies and expediates the identification pipeline of FITS files by automating the preprocessing, grouping, and fitting for a group of FITS files. Clustar is optimized in its codebase primarily in its efficacy in identifying non-bivariate Gaussian like substructures and is tested upon the Tobin dataset.
+## Motivation
+
+The motivation for using clustar is to identify prostars/protoplanetary disks stored in FITS files. These files contain grayscale images represented as 2d arrays, with each pixals containing the intensity values, and the header information about the telescope observational parameters. Clustar simplifies and expediates the identification pipeline of FITS files by automating the preprocessing, grouping, and fitting for a large amount of FITS files. Clustar is optimized in its codebase primarily in its efficacy in identifying non-bivariate Gaussian like substructures and is trained and tested upon the dataset curated by [Tobin et al.](https://ui.adsabs.harvard.edu/abs/2020ApJ...890..130T/abstract).
 
 ### Preprocessing
 
-Clustar crops the input image from a square dimension to a circle. This is done to alleviate the higher noise around the edges of the image. After cropping, clustar utilizes a technique known as sigma clipping to filter out the data points that are 5 times the RMS statistic. 
+Clustar crops the input image from a square to a circle while retaining the original dimension. The pixals not in the croped circle will be masked. This is done to alleviate the higher noise around the edges of the image introduced by the telescope. After cropping, clustar utilizes a technique known as sigma clipping to filter out the pixals that are less than 5 times the RMS (Root Mean Square) statistic. 
 
 ### Grouping
 
