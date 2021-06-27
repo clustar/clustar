@@ -1,29 +1,68 @@
-from scipy import stats
-from scipy import ndimage
-import numpy as np
-from shapely import geometry
-from shapely import affinity
+"""
+Clustar module for fitting-related methods.
+
+This module is designed for the 'ClustarData' object. All listed methods take
+an input parameter of a 'ClustarData' object and return a 'ClustarData' object
+after processing the method. As a result, all changes are localized within the
+'ClustarData' object.
+
+Visit <https://clustar.github.io/> for additional information.
+"""
+
+
 from clustar import graph
+from scipy import ndimage, stats
+from shapely import affinity, geometry 
+import numpy as np
 
 
 def compute_fit(cd):
-    for group in cd.groups:
-        rv = stats.multivariate_normal([group.stats.x_bar,
-                                        group.stats.y_bar],
-                                       group.stats.covariance_matrix)
+    """
+    Computes the normalized bivariate gaussian fit for the 'Group' objects.
+    
+    Parameters
+    ----------
+    cd : ClustarData
+        'ClustarData' object required for processing.
+    
+    Returns
+    -------
+    ClustarData
+    """
+    i = 0
+    while i < len(cd.groups):
+        group = cd.groups[i]
+        try:
+            rv = stats.multivariate_normal([group.stats.x_bar,
+                                            group.stats.y_bar],
+                                           group.stats.covariance_matrix)
+        except ValueError:
+            del cd.groups[i]
+            continue
+            
         bvg = rv.pdf(group.image.pos)
-
-        data_max = np.max(group.image.data.ravel())
-        bvg_max = np.max(bvg.ravel())
-        bvg *= data_max / bvg_max
-
+        bvg *= np.max(group.image.data) / np.max(bvg)
+        
         group.res.data = 1 - (bvg / group.image.data)
         group.fit.bvg = bvg
         group.fit.rv = rv
+        i += 1
     return cd
 
-
 def compute_ellipse(cd):
+    """
+    Computes the ellipse parameters and localized residuals for the 'Group'
+    objects.
+    
+    Parameters
+    ----------
+    cd : ClustarData
+        'ClustarData' object required for processing.
+    
+    Returns
+    -------
+    ClustarData
+    """
     for group in cd.groups:
         a = group.stats.x_len / 2
         b = group.stats.y_len / 2
@@ -52,12 +91,22 @@ def compute_ellipse(cd):
         group.res.outside = outside
     return cd
 
-
 def compute_metrics(cd):
+    """
+    Computes the evaluation metrics for the 'Group' objects.
+    
+    Parameters
+    ----------
+    cd : ClustarData
+        'ClustarData' object required for processing.
+    
+    Returns
+    -------
+    ClustarData
+    """
     for group in cd.groups:
         res = group.res
         output = np.abs(res.data[res.inside[:, 0], res.inside[:, 1]])
-        output = output.copy()
         output[output < 0] = 0
         output[output > 1] = 1
 
@@ -69,13 +118,25 @@ def compute_metrics(cd):
         group.res.output = output
     return cd
 
-
 def compute_peaks(cd):
+    """
+    Computes the number of peaks along the major and minor axes for the 
+    'Group' objects.
+    
+    Parameters
+    ----------
+    cd : ClustarData
+        'ClustarData' object required for processing.
+    
+    Returns
+    -------
+    ClustarData
+    """
     for group in cd.groups:
         res = np.array(group.res.data, copy=True)
         res_out = group.res.outside
         res[res_out[:, 0], res_out[:, 1]] = 0
-
+        
         r_major = np.abs(ndimage.rotate(res, group.stats.degrees))
         r_minor = np.abs(ndimage.rotate(res, group.stats.degrees + 90))
 
@@ -92,15 +153,30 @@ def compute_peaks(cd):
         group.res.clean = res
     return cd
 
-
 def validate(cd):
+    """
+    Determines which 'Group' objects are flagged for manual review by using
+    the specified validation parameters.
+    
+    Parameters
+    ----------
+    cd : ClustarData
+        'ClustarData' object required for processing.
+    
+    Returns
+    -------
+    ClustarData
+    """
     attribute = cd.params.metric.lower()
     threshold = cd.params.threshold
     for group in cd.groups:
         metric = getattr(group.metrics, attribute)
         if metric > threshold:
-            if ((group.fit.major_peaks not in [2, 4]) or
-                    (group.fit.minor_peaks not in [2, 4])):
-                group.flag = True
-                cd.flag = True
+            group.flag = True
+            cd.flag = True
+            if cd.params.evaluate_peaks and \
+            ((group.fit.major_peaks in [2, 4]) or 
+             (group.fit.minor_peaks in [2, 4])):
+                group.flag = False
+                cd.flag = False
     return cd

@@ -1,10 +1,43 @@
-import numpy as np
+"""
+General module for graphing-related methods.
+
+Visit <https://clustar.github.io/> for additional information.
+"""
+
+
 from scipy import ndimage
+from matplotlib.patches import Rectangle, Ellipse
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
-from clustar import *
+import numpy as np
+
 
 def critical_points(image, angle=0, smoothing=5, clip=0.75, center=None):
+    """
+    Returns the number of smoothed critical points along the specified axis.
+    
+    Parameters
+    ----------
+    image : ndarray
+        Data from the FITS image.
+    
+    angle : float, optional
+        Degree of rotation used to specify the axis of differentiation.
+    
+    smoothing : int, optional
+        Size of window used in the moving average smoothing process for peak
+        evaluation.
+    
+    clip : float, optional
+        Determines the percentage of tail values that are trimmed for peak 
+        evaluation.
+    
+    center : int, optional
+        Defines the row-wise axis of differentiation for peak evaluation.
+    
+    Returns
+    -------
+    list
+    """
     # rotate image along the degree of the major axis
     if angle != 0:
         image = ndimage.rotate(image, angle)
@@ -72,17 +105,46 @@ def critical_points(image, angle=0, smoothing=5, clip=0.75, center=None):
 
     return idx
 
-
 def identify_groups(cd, vmin=None, vmax=None, show=True, dpi=180):
+    """
+    Displays the FITS image and identifies the groups in green, orange, or
+    red rectangles, which are defined as:
+    1. Green denotes that the group is not flagged for manual review
+    2. Orange denotes that the group is not flagged for manual review, but
+       the group is smaller than the beam size.
+    3. Red denotes that the group is flagged for manual review.
+    Beam size is the white oval shown on the bottom right corner of 
+    the FITS image.
+
+    Parameters
+    ----------
+    cd : ClustarData
+        'ClustarData' object required for processing.
+    
+    vmin : float, optional
+        Lower bound for the shown intensities. 
+
+    vmax : float, optional
+        Upper bound for the shown intensities.
+
+    show : bool, optional
+        Determines whether the groups should be identified. If false, the
+        rectangles identifying the groups are not drawn.
+
+    dpi : int, optional
+        Dots per inch.
+    """
     plt.figure(figsize=(10, 5), dpi=dpi)
     plt.imshow(cd.image.data, origin="lower", vmin=vmin, vmax=vmax)
-    plt.title(dict(cd.header)['OBJECT'])
+    plt.title(dict(cd.image.header)['OBJECT'])
 
     for i, group in enumerate(cd.groups):
         bounds = group.image.bounds
         length = bounds[1] - bounds[0]
         if show:
             edgecolor = "red" if group.flag else "lime"
+            warning = len(group.image.nonzero) < cd.image.area
+            edgecolor = "orange" if warning else edgecolor
             plt.gca().add_patch(Rectangle(tuple(group.image.ref),
                                           length, length,
                                           edgecolor=edgecolor,
@@ -90,24 +152,14 @@ def identify_groups(cd, vmin=None, vmax=None, show=True, dpi=180):
 
         plt.annotate(i + 1, xy=(bounds[3] + 10, bounds[1] + 10), fontsize=6.5,
                      color='white')
-
-    # show bean size
+    # show beam size
+    major = cd.image.major
+    minor = cd.image.minor
+    degrees = cd.image.degrees
     row_max, col_max = cd.image.data.shape
-    bean_size = dict(cd.header)['BPA']
-    bean_dim = round(abs(bean_size) ** (1 / 2))
-    border_size = 3
-    border_dim = bean_dim + (2 * border_size)
-    border_coords = ((col_max - border_dim - 25), 25)
-    bean_coords = ((col_max - border_dim + border_size - 25),
-                   25 + border_size)
-
-    plt.gca().add_patch(Rectangle(border_coords,
-                                  border_dim, border_dim,
-                                  edgecolor='white', facecolor='white'))
-    plt.gca().add_patch(Rectangle(bean_coords,
-                                  bean_dim, bean_dim, edgecolor='black',
-                                  facecolor='black'))
-
+    buffer = int(row_max * 0.025)
+    coords = ((col_max - minor//2 - buffer), buffer + minor//2)
+    plt.gca().add_patch(Ellipse(coords, minor, major, angle=degrees,
+                                edgecolor='white', facecolor='white'))
     plt.colorbar()
     plt.show()
-

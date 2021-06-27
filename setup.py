@@ -1,13 +1,17 @@
 from setuptools import setup, find_packages
-import pathlib
-here = pathlib.Path(__file__).parent.resolve()
-long_description = (here / 'README.md').read_text(encoding='utf-8')
+
+
+with open('README.md', 'r') as file:
+    long_description = file.read()
+
 setup(
     name='clustar',
-    author='NRAO-CapstoneGroup',
-    author_email='jz5jx@virginia.edu',
-    description='Package for analyzing and clustering astronomical objects',
-    version='1.1.10',
+    author='Pavan Kumar Bondalapati',
+    author_email='pb7ak@virginia.edu',
+    description='''A python package for processing and analyzing protostars/
+                   protoplanetary disks in astronomical data in Flexible Image
+                   Transport System (FITS) images.''',
+    version='1.2.1',
     keywords='cluster, astronomy, protostars',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -26,8 +30,18 @@ setup(
     ],
     package_dir={'': 'src'},  
     packages=find_packages(where='src'),  # Required
-    package_data={
-        "": ["data/*.csv"],
-    },
     python_requires='>=3.6, <4',
+    install_requires=[
+        'numpy ~= 1.20.1',
+        'scipy ~= 1.6.1',
+        'astropy ~= 4.2',
+        'matplotlib ~= 3.3.4',
+        'pandas ~= 1.2.3',
+        'tqdm ~= 4.50.2'
+    ],
+    extras_require={
+        'dev': [
+            'pytest >= 5.4.1'
+        ]
+    },
 )

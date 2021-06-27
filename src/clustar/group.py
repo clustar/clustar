@@ -1,10 +1,35 @@
+"""
+Clustar module for grouping-related methods.
+
+This module is designed for the 'ClustarData' object. All listed methods take
+an input parameter of a 'ClustarData' object and return a 'ClustarData' object
+after processing the method. As a result, all changes are localized within the
+'ClustarData' object.
+
+Visit <https://clustar.github.io/> for additional information.
+"""
+
+
+from clustar import graph
 from scipy import stats
 from scipy import ndimage
 import numpy as np
-from clustar import graph
 
 
 def arrange(cd):
+    """
+    Arrange nonzero points from the denoised FITS image into 'Group' objects
+    by populating the 'bounds' parameter.
+    
+    Parameters
+    ----------
+    cd : ClustarData
+        'ClustarData' object required for processing.
+    
+    Returns
+    -------
+    ClustarData
+    """
     # get indices of nonzero elements
     nonzero = cd.image.nonzero
 
@@ -65,94 +90,19 @@ def arrange(cd):
     cd.groups = [cd.Group(bound) for bound in group_ranges]
     return cd
 
-
-def extract(cd):
-    for group in cd.groups:
-        row_min, row_max, col_min, col_max = group.image.bounds
-        x = np.arange(col_min, col_max + 1, 1)
-        y = np.arange(row_min, row_max + 1, 1)
-        x, y = np.meshgrid(x, y)
-        pos = np.dstack((y, x))
-
-        n_rows = pos.shape[0]
-        n_cols = pos.shape[1]
-
-        group.image.data = np.zeros((n_rows, n_cols))
-        group.image.clean = np.zeros((n_rows, n_cols))
-        for r in range(n_rows):
-            for c in range(n_cols):
-                group.image.data[r, c] = cd.image.data[tuple(pos[r, c])]
-                group.image.clean[r, c] = cd.image.clean[tuple(pos[r, c])]
-
-        x = np.arange(0, n_cols, 1)
-        y = np.arange(0, n_rows, 1)
-
-        group.image.x, group.image.y = np.meshgrid(x, y)
-        group.image.pos = np.dstack((group.image.x, group.image.y))
-        group.image.nonzero = np.dstack(np.nonzero(group.image.clean))[0]
-        group.image.ref = [col_min, row_min]
-        group.image.limit = [cd.image.data.shape[0],
-                             cd.image.data.shape[1]]
-    return cd
-
-
-def calculate(cd):
-    for group in cd.groups:
-        stats_ = group.stats
-        image_ = group.image
-        try:
-            stats_.x_bar = np.average(image_.x, weights=image_.data)
-            stats_.y_bar = np.average(image_.y, weights=image_.data)
-            stats_.x_var = np.average((image_.x - stats_.x_bar) ** 2,
-                                      weights=image_.data)
-            stats_.y_var = np.average((image_.y - stats_.y_bar) ** 2,
-                                      weights=image_.data)
-            stats_.covariance = np.average(image_.x * image_.y,
-                                           weights=image_.data) - \
-                                stats_.x_bar * stats_.y_bar
-
-        # if there is a 'ZeroDivisionError', then delete group
-        except ZeroDivisionError:
-            del group
-            continue
-
-        # if the variance of X or Y is 0, then delete group
-        if 0 in [stats_.x_var, stats_.y_var]:
-            del group
-            continue
-
-        # otherwise, compute rho, covariance matrix
-        stats_.rho = stats_.covariance / (np.sqrt(stats_.x_var) *
-                                          np.sqrt(stats_.y_var))
-        stats_.covariance_matrix = np.array([[stats_.x_var,
-                                              stats_.covariance],
-                                             [stats_.covariance,
-                                              stats_.y_var]])
-
-        # compute statistics required for ellipse parameters
-        stats_.eigen_values, stats_.eigen_vectors = \
-            np.linalg.eig(stats_.covariance_matrix)
-        alpha = cd.params.alpha
-        if stats_.eigen_values[0] >= stats_.eigen_values[1]:
-            stats_.x_len = 2 * np.sqrt(stats_.eigen_values[0] *
-                                       stats.chi2.ppf(1 - alpha, df=2))
-            stats_.y_len = 2 * np.sqrt(stats_.eigen_values[1] *
-                                       stats.chi2.ppf(1 - alpha, df=2))
-            stats_.radians = np.arctan(stats_.eigen_vectors[1][0] /
-                                       stats_.eigen_vectors[1][1])
-            stats_.degrees = np.degrees(stats_.radians)
-        else:
-            stats_.x_len = 2 * np.sqrt(stats_.eigen_values[1] *
-                                       stats.chi2.ppf(1 - alpha, df=2))
-            stats_.y_len = 2 * np.sqrt(stats_.eigen_values[0] *
-                                       stats.chi2.ppf(1 - alpha, df=2))
-            stats_.radians = np.arctan(stats_.eigen_vectors[0][0] /
-                                       stats_.eigen_vectors[0][1])
-            stats_.degrees = np.degrees(stats_.radians)
-    return cd
-
-
 def rectify(cd):
+    """
+    Convert the dimensions of the 'bounds' into a square.
+    
+    Parameters
+    ----------
+    cd : ClustarData
+        'ClustarData' object required for processing.
+    
+    Returns
+    -------
+    ClustarData
+    """
     # converts image data from the groups to a square matrix by inserting
     # additional rows or columns to the shorter axis
     for group in cd.groups:
@@ -184,11 +134,21 @@ def rectify(cd):
             row_max = row_max if row_max < r_max else r_max - 1
 
         group.image.bounds = [row_min, row_max, col_min, col_max]
-
     return cd
 
-
 def merge(cd):
+    """
+    Remove nested 'bounds' from the 'Group' objects.
+    
+    Parameters
+    ----------
+    cd : ClustarData
+        'ClustarData' object required for processing.
+    
+    Returns
+    -------
+    ClustarData
+    """
     b = cd.params.buffer_size
     group_ranges = [group.image.bounds for group in cd.groups]
     group_ranges = sorted([(range_[1] - range_[0], range_)
@@ -213,8 +173,20 @@ def merge(cd):
     cd.groups = [cd.Group(bound) for bound in group_ranges]
     return cd
 
-
 def refine(cd):
+    """
+    Delete 'Group' objects that do not meet the specified thresholds.
+    
+    Parameters
+    ----------
+    cd : ClustarData
+        'ClustarData' object required for processing.
+    
+    Returns
+    -------
+    ClustarData
+    """
+    
     if len(cd.groups) > 0:
         group_ranges = [group.image.bounds for group in cd.groups]
         group_sizes = [(group_range[1] - group_range[0]) ** 2
@@ -223,17 +195,177 @@ def refine(cd):
         threshold = cd.params.group_factor * np.max(group_sizes)
         i = 0
         while i < len(group_sizes):
-            if ((group_sizes[i] < cd.params.group_size) or
-                    (group_sizes[i] < threshold)):
+            if ((group_sizes[i] < cd.params.group_size) or 
+                (group_sizes[i] < threshold)):
                 del cd.groups[i]
                 del group_sizes[i]
-                i -= 1
+                i -= 1            
             i += 1
-
     return cd
 
+def extract(cd):
+    """
+    Extract FITS data using the 'bounds' variable for each 'Group' object.
+    
+    Parameters
+    ----------
+    cd : ClustarData
+        'ClustarData' object required for processing.
+    
+    Returns
+    -------
+    ClustarData
+    """
+    for group in cd.groups:
+        row_min, row_max, col_min, col_max = group.image.bounds
+        x = np.arange(col_min, col_max + 1, 1)
+        y = np.arange(row_min, row_max + 1, 1)
+        x, y = np.meshgrid(x, y)
+        pos = np.dstack((y, x))
+
+        n_rows = pos.shape[0]
+        n_cols = pos.shape[1]
+
+        group.image.data = np.zeros((n_rows, n_cols))
+        group.image.clean = np.zeros((n_rows, n_cols))
+        for r in range(n_rows):
+            for c in range(n_cols):
+                group.image.data[r, c] = cd.image.data[tuple(pos[r, c])]
+                group.image.clean[r, c] = cd.image.clean[tuple(pos[r, c])]
+
+        x = np.arange(0, n_cols, 1)
+        y = np.arange(0, n_rows, 1)
+
+        group.image.x, group.image.y = np.meshgrid(x, y)
+        group.image.pos = np.dstack((group.image.x, group.image.y))
+        group.image.nonzero = np.dstack(np.nonzero(group.image.clean))[0]
+        group.image.ref = [col_min, row_min]
+        group.image.limit = [cd.image.data.shape[0],
+                             cd.image.data.shape[1]]
+    return cd
+
+def screen(cd):
+    """
+    Screen for 'Group' objects that appear to be outliers; remove 'Group' 
+    objects that are dim and distant from the center of the FITS image.
+    
+    Parameters
+    ----------
+    cd : ClustarData
+        'ClustarData' object required for processing.
+    
+    Returns
+    -------
+    ClustarData
+    """
+    
+    if len(cd.groups) > 0:
+        limit = np.quantile(list(cd.image.rms), q=1)
+        center = np.array([cd.image.data.shape[0]/2, 
+                           cd.image.data.shape[1]/2])
+        i = 0
+        while i < len(cd.groups):
+            group = cd.groups[i]
+            group_center = np.array([group.image.data.shape[0]//2, 
+                                     group.image.data.shape[1]//2])
+            group_coords = group_center + np.array(group.image.ref)
+            distance = np.linalg.norm(group_coords - center)
+            distance_metric = 1 - (distance / center[0])
+            intensity_metric = np.max(group.image.data) / \
+                np.max(cd.image.clean)
+            metric = (0.5 * distance_metric) + (0.5 * intensity_metric)
+            if metric < 0.25:
+                del cd.groups[i]
+                i -= 1
+            i += 1
+    return cd
+
+def calculate(cd):
+    """
+    Calculate statistics using the FITS data for each 'Group' object.
+    
+    Parameters
+    ----------
+    cd : ClustarData
+        'ClustarData' object required for processing.
+    
+    Returns
+    -------
+    ClustarData
+    """
+    i = 0
+    while i < len(cd.groups):
+        group = cd.groups[i]
+        stats_ = group.stats
+        image_ = group.image
+        try:
+            stats_.x_bar = np.average(image_.x, weights=image_.data)
+            stats_.y_bar = np.average(image_.y, weights=image_.data)
+            stats_.x_var = np.average((image_.x - stats_.x_bar) ** 2,
+                                      weights=image_.data)
+            stats_.y_var = np.average((image_.y - stats_.y_bar) ** 2,
+                                      weights=image_.data)
+            stats_.covariance = np.average(image_.x * image_.y,
+                                           weights=image_.data) - \
+                                stats_.x_bar * stats_.y_bar
+
+        # if there is a 'ZeroDivisionError', then delete group
+        except ZeroDivisionError:
+            del cd.groups[i]
+            continue
+
+        # if the variance of X or Y is 0, then delete group
+        if 0 in [stats_.x_var, stats_.y_var]:
+            del cd.groups[i]
+            continue
+        
+        stats_.x_var = abs(stats_.x_var)
+        stats_.y_var = abs(stats_.y_var)
+
+        # otherwise, compute rho, covariance matrix
+        stats_.rho = stats_.covariance / (np.sqrt(stats_.x_var) *
+                                          np.sqrt(stats_.y_var))
+        stats_.covariance_matrix = np.array([[stats_.x_var,
+                                              stats_.covariance],
+                                             [stats_.covariance,
+                                              stats_.y_var]])
+
+        # compute statistics required for ellipse parameters
+        stats_.eigen_values, stats_.eigen_vectors = \
+            np.linalg.eig(stats_.covariance_matrix)
+        alpha = cd.params.alpha
+        if stats_.eigen_values[0] >= stats_.eigen_values[1]:
+            stats_.x_len = 2 * np.sqrt(stats_.eigen_values[0] *
+                                       stats.chi2.ppf(1 - alpha, df=2))
+            stats_.y_len = 2 * np.sqrt(stats_.eigen_values[1] *
+                                       stats.chi2.ppf(1 - alpha, df=2))
+            stats_.radians = np.arctan(stats_.eigen_vectors[1][0] /
+                                       stats_.eigen_vectors[1][1])
+            stats_.degrees = np.degrees(stats_.radians)
+        else:
+            stats_.x_len = 2 * np.sqrt(stats_.eigen_values[1] *
+                                       stats.chi2.ppf(1 - alpha, df=2))
+            stats_.y_len = 2 * np.sqrt(stats_.eigen_values[0] *
+                                       stats.chi2.ppf(1 - alpha, df=2))
+            stats_.radians = np.arctan(stats_.eigen_vectors[0][0] /
+                                       stats_.eigen_vectors[0][1])
+            stats_.degrees = np.degrees(stats_.radians)
+        i += 1
+    return cd
 
 def detect(cd):
+    """
+    Split binary groups into separate 'Group' objects.
+    
+    Parameters
+    ----------
+    cd : ClustarData
+        'ClustarData' object required for processing.
+    
+    Returns
+    -------
+    ClustarData
+    """
     group_ranges = []
     for group in cd.groups:
 
@@ -245,7 +377,6 @@ def detect(cd):
         idx = [idx[i] for i in range(len(idx)) if i % 2 == 0]
 
         if len(idx) == 3:
-
             # original center of the un-rotated image
             org_center = (np.array(group.image.data.shape[:2][::-1]) - 1) / 2
 
@@ -280,10 +411,7 @@ def detect(cd):
                 c = [0 if c_ < 0 else c_ for c_ in c]
                 group_range = [np.min(c), np.max(c), np.min(r), np.max(r)]
                 group_ranges.append(group_range)
-
         else:
             group_ranges.append(group.image.bounds)
-
         cd.groups = [cd.Group(bound) for bound in group_ranges]
-
     return cd
